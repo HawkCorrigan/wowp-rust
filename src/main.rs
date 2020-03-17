@@ -98,7 +98,7 @@ fn parse_date<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, Da
 fn parse_date_works() {
     let test = parse_date::<(&str, ErrorKind)>("10/16");
 
-    assert_eq!(test, Ok(("", Date { day: 10, month: 16 })))
+    assert_eq!(test, Ok(("", Date { month: 10, day: 16 })))
 }
 
 fn parse_log_line<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, (Date, Time), E> {
