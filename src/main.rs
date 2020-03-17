@@ -7,10 +7,11 @@ use std::time::Instant;
 
 use nom::{
     branch::alt,
-    bytes::complete::tag,
+    bytes::complete::{is_not, tag},
     character::complete::{char, digit0, space1},
     combinator::map,
     error::{ErrorKind, ParseError},
+    multi::separated_list,
     sequence::{separated_pair, tuple},
     IResult,
 };
@@ -101,15 +102,29 @@ fn parse_date_works() {
     assert_eq!(test, Ok(("", Date { month: 10, day: 16 })))
 }
 
-fn parse_log_line<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, (Date, Time), E> {
-    let (input, (date, _, time)) = tuple((parse_date, space1, parse_time))(input)?;
+fn parse_line_values(s: &str) -> IResult<&str, Vec<&str>> {
+    separated_list(tag(","), is_not(","))(s)
+}
 
-    Ok((input, (date, time)))
+#[test]
+fn parse_line_values_works() {
+    let test = parse_line_values("a,a,a");
+
+    assert_eq!(test, Ok(("", vec!["a", "a", "a"])));
+}
+
+fn parse_log_line<'a, E: ParseError<&'a str>>(
+    input: &'a str,
+) -> IResult<&'a str, (Date, Time, Vec<&'a str>), E> {
+    let (input, (date, _, time, _, vals)) =
+        tuple((parse_date, space1, parse_time, space1, parse_line_values))(input).unwrap();
+
+    Ok((input, (date, time, vals)))
 }
 
 #[test]
 fn parse_log_line_test() {
-    let test = parse_log_line::<(&str, ErrorKind)>("10/17 01:00:29.037");
+    let test = parse_log_line::<(&str, ErrorKind)>("10/17 01:00:29.037 HELLO_WORLD");
 
     assert_eq!(
         test,
@@ -122,7 +137,8 @@ fn parse_log_line_test() {
                     minute: 0,
                     second: 29,
                     millisecond: 37
-                }
+                },
+                vec!["HELLO_WORLD"]
             )
         ))
     )
