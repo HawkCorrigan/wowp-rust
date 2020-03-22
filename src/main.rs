@@ -30,27 +30,27 @@ struct Date {
     pub day: u16,
 }
 
-fn parse_digit_int<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, u16, E> {
+fn parse_digit_int(input: &str) -> IResult<&str, u16> {
     map(digit0, |s: &str| s.parse::<u16>().unwrap())(input)
 }
 
 #[test]
 fn parse_digit_int_works() {
-    let num = parse_digit_int::<(&str, ErrorKind)>("69.420");
+    let num = parse_digit_int("69.420");
     assert_eq!(num, Ok((".420", 69)));
 }
 
 #[test]
 fn parse_digit_int_edge() {
-    let num = parse_digit_int::<(&str, ErrorKind)>("999");
+    let num = parse_digit_int("999");
     assert_eq!(num, Ok(("", 999)));
 }
 
-fn time_delimiter<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, char, E> {
+fn time_delimiter(i: &str) -> IResult<&str, char> {
     return alt((char(':'), char('.')))(i);
 }
 
-fn parse_time<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, Time, E> {
+fn parse_time(input: &str) -> IResult<&str, Time> {
     let (input, (hour, _, minute, _, second, _, millisecond)) = tuple((
         parse_digit_int,
         time_delimiter,
@@ -74,7 +74,7 @@ fn parse_time<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, Ti
 
 #[test]
 fn parse_time_fragment_works() {
-    let test = parse_time::<(&str, ErrorKind)>("00:46:03.895");
+    let test = parse_time("00:46:03.895");
     assert_eq!(
         test,
         Ok((
@@ -89,7 +89,7 @@ fn parse_time_fragment_works() {
     )
 }
 
-fn parse_date<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, Date, E> {
+fn parse_date(input: &str) -> IResult<&str, Date> {
     let (input, (month, day)) = separated_pair(parse_digit_int, tag("/"), parse_digit_int)(input)?;
 
     Ok((input, Date { month, day }))
@@ -97,7 +97,7 @@ fn parse_date<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, Da
 
 #[test]
 fn parse_date_works() {
-    let test = parse_date::<(&str, ErrorKind)>("10/16");
+    let test = parse_date("10/16");
 
     assert_eq!(test, Ok(("", Date { month: 10, day: 16 })))
 }
@@ -113,9 +113,7 @@ fn parse_line_values_works() {
     assert_eq!(test, Ok(("", vec!["a", "a", "a"])));
 }
 
-fn parse_log_line<'a, E: ParseError<&'a str>>(
-    input: &'a str,
-) -> IResult<&'a str, (Date, Time, Vec<&'a str>), E> {
+fn parse_log_line(input: &str) -> IResult<&str, (Date, Time, Vec<&str>)> {
     let (input, (date, _, time, _, vals)) =
         tuple((parse_date, space1, parse_time, space1, parse_line_values))(input).unwrap();
 
@@ -124,7 +122,7 @@ fn parse_log_line<'a, E: ParseError<&'a str>>(
 
 #[test]
 fn parse_log_line_test() {
-    let test = parse_log_line::<(&str, ErrorKind)>("10/17 01:00:29.037 HELLO_WORLD");
+    let test = parse_log_line("10/17 01:00:29.037 HELLO_WORLD");
 
     assert_eq!(
         test,
@@ -152,9 +150,9 @@ fn open_file(path: &str) -> Result<(), Error> {
     for line in buffer.lines() {
         let test: String = line?;
 
-        let _logLine = parse_log_line::<(&str, ErrorKind)>(test.as_str());
-        // let _date = parse_date::<(&str, ErrorKind)>(test.as_str());
-        // let _test = parse_time::<(&str, ErrorKind)>("00:46:03.895");
+        let _logLine = parse_log_line(test.as_str());
+        // let _date = parse_date(test.as_str());
+        // let _test = parse_time("00:46:03.895");
 
         // println!("{:#?}", _logLine);
         // println!("{:#?}", test);
