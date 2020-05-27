@@ -1,5 +1,7 @@
 extern crate nom;
+extern crate rayon;
 
+use rayon::prelude::*;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Error};
 use std::string::String;
@@ -148,14 +150,10 @@ fn open_file(path: &str) -> Result<(), Error> {
     let start = Instant::now();
 
     for line in buffer.lines() {
-        let test: String = line?;
-
-        let _logLine = parse_log_line(test.as_str());
-        // let _date = parse_date(test.as_str());
-        // let _test = parse_time("00:46:03.895");
+        let lineString: String = line?;
+        let logLine = parse_log_line(&lineString);
 
         // println!("{:#?}", _logLine);
-        // println!("{:#?}", test);
     }
 
     let elapsed = start.elapsed();
@@ -163,6 +161,26 @@ fn open_file(path: &str) -> Result<(), Error> {
     return Ok(());
 }
 
+fn open_file_perf(path: &str) -> Result<(), Error> {
+    let file = File::open(path)?;
+    let buffer = BufReader::new(file);
+    let start = Instant::now();
+
+    let lineBuffer = buffer
+        .lines()
+        .filter_map(|line: Result<String, _>| line.ok())
+        .par_bridge()
+        .for_each(|v: String| {
+            let logLine = parse_log_line(&v);
+            // println!("{:#?}", logLine);
+        });
+
+    let elapsed = start.elapsed();
+    println!("Millis: {} ms", elapsed.as_millis());
+    return Ok(());
+}
+
 fn main() {
-    open_file("WoWCombatLog.txt");
+    // open_file("WoWCombatLog.txt");
+    open_file_perf("WoWCombatLog.txt");
 }
